@@ -10,6 +10,10 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", content_type)
         self.end_headers()
 
+    def throw_custom_error(self, message):
+        self._set_response("application/json")
+        self.wfile.write(json.dumps({"message": message}).encode())
+
     def do_GET(self):
         self._set_response()
         respuesta = "El valor es: " + str(contador)
@@ -19,13 +23,29 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(content_length)
 
-        body_json = json.loads(post_data.decode())
+        try:
+            body_json = json.loads(post_data.decode())
+        except:
+            self.throw_custom_error("Invalid JSON")
+            return
 
-        global contador  # Se declara como global para modificarla
+        global contador  # Se declara como global para modificarlas
 
-        if 'cantidad' in body_json:  # Verifica sin "cantidad" esta en el cuerpo de la solicitud
-            # Asignamos el valor que se obtiene del JSON a la variable global "cantidad"
-            cantidad = body_json['cantidad']
+        # Check if action is valid
+        if (body_json.get('action') is None or body_json.get('cantidad') is None):
+            self.throw_custom_error("Missing action or quantity")
+            return
+
+        if (body_json['action'] != 'asc' and body_json['action'] != 'desc'):
+            self.throw_custom_error("Invalid Action")
+            return
+
+        # Check if quantity is valid, integer
+        try:
+            int(body_json['cantidad'])
+        except:
+            self.throw_custom_error("invalid quantity")
+            return
 
         if (body_json['action'] == 'asc'):
             # Incrementamos y asignamos el valor a la variable contador
@@ -34,16 +54,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             # Decrementamos y asignamos el valor a la variable contador
             contador -= int(body_json['cantidad'])
 
-        # Print the complete HTTP request
-        print("\n----- Incoming POST Request -----")
-        print(f"Requestline: {self.requestline}")
-        print(f"Headers:\n{self.headers}")
-        print(f"Body:\n{post_data.decode()}")
-        print("-------------------------------")
-
         # Respond to the client
         response_data = json.dumps(
-            {"message": "Received POST data", "data": post_data.decode(), "status": "OK"})
+            {"message": "Received POST data, new value: " + str(contador), "status": "OK"})
         self._set_response("application/json")
         self.wfile.write(response_data.encode())
 

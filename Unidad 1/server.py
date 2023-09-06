@@ -23,23 +23,12 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         global contador  # Se declara como global para modificarla
 
-        if 'cantidad' in body_json:  # Verifica sin "cantidad" esta en el cuerpo de la solicitud
-            # Asignamos el valor que se obtiene del JSON a la variable global "cantidad"
-            cantidad = body_json['cantidad']
-
         if (body_json['action'] == 'asc'):
             # Incrementamos y asignamos el valor a la variable contador
             contador += int(body_json['cantidad'])
         elif (body_json['action'] == 'desc'):
             # Decrementamos y asignamos el valor a la variable contador
             contador -= int(body_json['cantidad'])
-
-        # Print the complete HTTP request
-        print("\n----- Incoming POST Request -----")
-        print(f"Requestline: {self.requestline}")
-        print(f"Headers:\n{self.headers}")
-        print(f"Body:\n{post_data.decode()}")
-        print("-------------------------------")
 
         # Respond to the client
         response_data = json.dumps(
